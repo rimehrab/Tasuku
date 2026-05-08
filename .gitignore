@@ -1,0 +1,21 @@
+# Android
+/build
+/app/build
+*.iml
+.gradle
+/local.properties
+.externalNativeBuild
+.cxx
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.out
+
+# Mac/Windows
+.DS_Store
+Thumbs.db
+
+# App specific
+/app/debug
+/app/release
