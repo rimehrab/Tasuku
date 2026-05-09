@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -24,6 +25,8 @@ import dev.rimehrab.tasuku.ui.theme.TasukuTheme
 import dev.rimehrab.tasuku.viewmodel.TaskViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,10 +58,20 @@ fun TodoScreen(viewModel: TaskViewModel) {
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         topBar = {
             LargeTopAppBar(
-                title = { Text("Tasuku") },
-                scrollBehavior = scrollBehavior
+                title = { 
+                    Text(
+                        "Tasuku",
+                        style = MaterialTheme.typography.headlineLarge
+                    ) 
+                },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                )
             )
         }
     ) { innerPadding ->
@@ -67,34 +80,50 @@ fun TodoScreen(viewModel: TaskViewModel) {
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
-            Row(
+            Surface(
                 modifier = Modifier
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
                     .fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh
             ) {
-                OutlinedTextField(
-                    value = newTaskTitle,
-                    onValueChange = { newTaskTitle = it },
-                    label = { Text("What needs to be done?") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(
-                    onClick = {
-                        viewModel.addTask(newTaskTitle)
-                        newTaskTitle = ""
-                    },
-                    colors = IconButtonDefaults.filledIconButtonColors()
+                Row(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Task")
+                    TextField(
+                        value = newTaskTitle,
+                        onValueChange = { newTaskTitle = it },
+                        placeholder = { Text("What needs to be done?") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                        )
+                    )
+                    IconButton(
+                        onClick = {
+                            if (newTaskTitle.isNotBlank()) {
+                                viewModel.addTask(newTaskTitle)
+                                newTaskTitle = ""
+                            }
+                        },
+                        colors = IconButtonDefaults.filledIconButtonColors()
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Add Task")
+                    }
                 }
             }
 
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(tasks, key = { it.id }) { task ->
@@ -116,11 +145,20 @@ fun TaskItem(
     onDelete: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggle() },
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (task.isCompleted) 
+                MaterialTheme.colorScheme.surfaceContainerLow 
+            else 
+                MaterialTheme.colorScheme.surfaceBright
+        )
     ) {
         Row(
             modifier = Modifier
-                .padding(12.dp)
+                .padding(16.dp)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -132,15 +170,19 @@ fun TaskItem(
                 text = task.title,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(start = 8.dp),
-                style = MaterialTheme.typography.bodyLarge,
-                textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null
+                    .padding(start = 12.dp),
+                style = MaterialTheme.typography.titleMedium,
+                textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
+                color = if (task.isCompleted) 
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                else 
+                    MaterialTheme.colorScheme.onSurface
             )
             IconButton(onClick = onDelete) {
                 Icon(
                     Icons.Default.Delete,
                     contentDescription = "Delete Task",
-                    tint = MaterialTheme.colorScheme.error
+                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
                 )
             }
         }
