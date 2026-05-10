@@ -34,5 +34,5 @@ Feel free to reach out with questions or suggestions:
 * Email: contact@rimehrab.is-a.dev
 
 ## 🙌 Special thanks to:  
-[hotarunichijou](https://github.com/hotarunichijou) for the idea of it.
-[syntaxspin](https://github.com/syntaxspin) for the amazing icon.
+* [hotarunichijou](https://github.com/hotarunichijou) for the idea of it.
+* [syntaxspin](https://github.com/syntaxspin) for the amazing icon.
