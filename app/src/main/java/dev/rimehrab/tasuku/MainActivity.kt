@@ -4,8 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -19,7 +22,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -65,7 +67,7 @@ fun TodoScreen(viewModel: TaskViewModel) {
     var previousTasksSize by remember { mutableIntStateOf(tasks.size) }
     LaunchedEffect(tasks.size) {
         if (tasks.size > previousTasksSize) {
-            listState.scrollToItem(0)
+            listState.animateScrollToItem(0)
         }
         previousTasksSize = tasks.size
     }
@@ -89,94 +91,121 @@ fun TodoScreen(viewModel: TaskViewModel) {
             )
         }
     ) { innerPadding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
-                .padding(innerPadding)
                 .fillMaxSize()
+                .padding(top = innerPadding.calculateTopPadding())
+                .consumeWindowInsets(innerPadding),
+            state = listState,
+            contentPadding = PaddingValues(
+                start = 16.dp, 
+                end = 16.dp, 
+                bottom = innerPadding.calculateBottomPadding() + 16.dp,
+                top = 8.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            Surface(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .fillMaxWidth(),
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh
-            ) {
-                Row(
+            item {
+                Surface(
                     modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .padding(vertical = 8.dp)
                         .fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh
                 ) {
-                    TextField(
-                        value = newTaskTitle,
-                        onValueChange = { newTaskTitle = it },
-                        placeholder = { Text("What needs to be done?") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            disabledContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                        )
-                    )
-                    IconButton(
-                        onClick = {
-                            if (newTaskTitle.isNotBlank()) {
-                                viewModel.addTask(newTaskTitle)
-                                newTaskTitle = ""
-                            }
-                        },
-                        colors = IconButtonDefaults.filledIconButtonColors()
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add Task")
+                        TextField(
+                            value = newTaskTitle,
+                            onValueChange = { newTaskTitle = it },
+                            placeholder = { Text("What needs to be done?") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                            )
+                        )
+                        IconButton(
+                            onClick = {
+                                if (newTaskTitle.isNotBlank()) {
+                                    viewModel.addTask(newTaskTitle)
+                                    newTaskTitle = ""
+                                }
+                            },
+                            colors = IconButtonDefaults.filledIconButtonColors()
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Add Task")
+                        }
                     }
                 }
             }
 
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                state = listState,
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                itemsIndexed(tasks, key = { _, task -> task.id }) { _, task ->
-                    val itemShape = RoundedCornerShape(20.dp)
-                    
-                    Box(modifier = Modifier.animateItemPlacement()) {
-                        TaskItem(
-                            task = task,
-                            shape = itemShape,
-                            onToggle = { viewModel.toggleTaskCompletion(task) },
-                            onDelete = { viewModel.deleteTask(task) }
-                        )
-                    }
+            itemsIndexed(tasks, key = { _, task -> task.id }) { index, task ->
+                val isFirst = index == 0
+                val isLast = index == tasks.size - 1
+                
+                Box(modifier = Modifier.animateItemPlacement()) {
+                    TaskItem(
+                        task = task,
+                        isFirst = isFirst,
+                        isLast = isLast,
+                        onToggle = { viewModel.toggleTaskCompletion(task) },
+                        onDelete = { viewModel.deleteTask(task) }
+                    )
                 }
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskItem(
     task: Task,
-    shape: Shape,
+    isFirst: Boolean,
+    isLast: Boolean,
     onToggle: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val backgroundColor by animateColorAsState(
+        targetValue = if (task.isCompleted) 
+            MaterialTheme.colorScheme.surfaceContainerLow 
+        else 
+            MaterialTheme.colorScheme.surfaceBright,
+        label = "taskBackground"
+    )
+
+    val topRadius by animateDpAsState(
+        targetValue = if (isFirst) 20.dp else 4.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessHigh),
+        label = "topRadius"
+    )
+    val bottomRadius by animateDpAsState(
+        targetValue = if (isLast) 20.dp else 4.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessHigh),
+        label = "bottomRadius"
+    )
+
+    val shape = RoundedCornerShape(
+        topStart = topRadius,
+        topEnd = topRadius,
+        bottomStart = bottomRadius,
+        bottomEnd = bottomRadius
+    )
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .clickable { onToggle() },
+        onClick = onToggle,
+        modifier = Modifier.fillMaxWidth(),
         shape = shape,
-        colors = CardDefaults.cardColors(
-            containerColor = if (task.isCompleted) 
-                MaterialTheme.colorScheme.surfaceContainerLow 
-            else 
-                MaterialTheme.colorScheme.surfaceBright
-        )
+        colors = CardDefaults.cardColors(containerColor = backgroundColor)
     ) {
         Row(
             modifier = Modifier
