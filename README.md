@@ -1,5 +1,9 @@
 # Tasuku (タスク)
 
+[![Release](https://img.shields.io/github/v/release/rimehrab/Tasuku?display_name=tag&style=for-the-badge)](https://github.com/rimehrab/Tasuku/releases/latest)
+[![Build Debug](https://img.shields.io/github/actions/workflow/status/rimehrab/Tasuku/build.yml?branch=main&style=for-the-badge)](https://github.com/rimehrab/Tasuku/actions/workflows/build.yml)
+[![License](https://img.shields.io/github/license/rimehrab/Tasuku?style=for-the-badge)](/LICENSE)
+
 Tasuku is a minimalist, Android to-do application built with Kotlin and Jetpack Compose. It follows the "Material Expressive" design, prioritizing a clean, modern interface and a seamless user experience.
 
 ## ✨ Key features
@@ -11,6 +15,11 @@ Tasuku is a minimalist, Android to-do application built with Kotlin and Jetpack 
 
 ## ⬇️ Downloads
 *The app is currently in early development. You can download the latest debug APK from the GitHub Actions artifacts.*
+
+## 🎨 Screenshots
+| ![Screenshot 1](fastlane/metadata/android/en-US/images/phoneScreenshots/1.png) | ![Screenshot 2](fastlane/metadata/android/en-US/images/phoneScreenshots/2.png) | ![Screenshot 3](fastlane/metadata/android/en-US/images/phoneScreenshots/3.png) |
+|--------------------------------------------------------------------------------|--------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
+| ![Screenshot 4](fastlane/metadata/android/en-US/images/phoneScreenshots/4.png) | ![Screenshot 5](fastlane/metadata/android/en-US/images/phoneScreenshots/5.png) |
 
 ## 🧰 Build instructions
 1. Clone this repository:
