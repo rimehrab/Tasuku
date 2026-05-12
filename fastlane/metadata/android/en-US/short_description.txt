@@ -1,0 +1,1 @@
+Minimalist Android to-do application built with Kotlin and Jetpack Compose.
