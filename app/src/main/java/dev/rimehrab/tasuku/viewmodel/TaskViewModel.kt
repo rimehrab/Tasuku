@@ -25,6 +25,13 @@ class TaskViewModel(private val taskDao: TaskDao) : ViewModel() {
         }
     }
 
+    fun updateTaskTitle(task: Task, newTitle: String) {
+        if (newTitle.isBlank() || newTitle == task.title) return
+        viewModelScope.launch {
+            taskDao.updateTask(task.copy(title = newTitle))
+        }
+    }
+
     fun toggleTaskCompletion(task: Task) {
         viewModelScope.launch {
             taskDao.updateTask(task.copy(isCompleted = !task.isCompleted))

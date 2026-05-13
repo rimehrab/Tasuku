@@ -12,6 +12,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -32,6 +33,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -214,12 +216,30 @@ fun TodoScreen(viewModel: TaskViewModel, onMenuClick: () -> Unit) {
     val listState = rememberLazyListState()
     var newTaskTitle by rememberSaveable { mutableStateOf("") }
 
+    var editingTask by remember { mutableStateOf<Task?>(null) }
+    var showEditSheet by remember { mutableStateOf(false) }
+
     var previousTasksSize by remember { mutableIntStateOf(tasks.size) }
     LaunchedEffect(tasks.size) {
         if (tasks.size > previousTasksSize) {
             listState.animateScrollToItem(0)
         }
         previousTasksSize = tasks.size
+    }
+
+    if (showEditSheet && editingTask != null) {
+        EditTaskSheet(
+            task = editingTask!!,
+            onDismiss = { 
+                showEditSheet = false
+                editingTask = null
+            },
+            onSave = { updatedTitle ->
+                viewModel.updateTaskTitle(editingTask!!, updatedTitle)
+                showEditSheet = false
+                editingTask = null
+            }
+        )
     }
 
     Scaffold(
@@ -323,7 +343,11 @@ fun TodoScreen(viewModel: TaskViewModel, onMenuClick: () -> Unit) {
                         isFirst = isFirst,
                         isLast = isLast,
                         onToggle = { viewModel.toggleTaskCompletion(task) },
-                        onDelete = { viewModel.deleteTask(task) }
+                        onDelete = { viewModel.deleteTask(task) },
+                        onLongClick = {
+                            editingTask = task
+                            showEditSheet = true
+                        }
                     )
                 }
             }
@@ -333,12 +357,75 @@ fun TodoScreen(viewModel: TaskViewModel, onMenuClick: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun EditTaskSheet(
+    task: Task,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var title by remember { mutableStateOf(task.title) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 24.dp, end = 24.dp, bottom = 48.dp, top = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            Text(
+                text = "Edit Task",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Medium
+            )
+
+            TextField(
+                value = title,
+                onValueChange = { title = it },
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                placeholder = { Text("Task title") },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant
+                )
+            )
+
+            Button(
+                onClick = { onSave(title) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text(
+                    "Save Changes",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
 fun TaskItem(
     task: Task,
     isFirst: Boolean,
     isLast: Boolean,
     onToggle: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onLongClick: () -> Unit
 ) {
     val backgroundColor by animateColorAsState(
         targetValue = if (task.isCompleted) 
@@ -367,8 +454,13 @@ fun TaskItem(
     )
 
     Card(
-        onClick = onToggle,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .combinedClickable(
+                onClick = { },
+                onLongClick = onLongClick
+            ),
         shape = shape,
         colors = CardDefaults.cardColors(containerColor = backgroundColor)
     ) {
