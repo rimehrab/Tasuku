@@ -277,7 +277,7 @@ fun TodoScreen(viewModel: TaskViewModel, onMenuClick: () -> Unit) {
                 val isFirst = index == 0
                 val isLast = index == tasks.size - 1
 
-                Box(modifier = Modifier.animateItemPlacement()) {
+                Box(modifier = Modifier.animateItem()) {
                     TaskItem(
                         task = task,
                         isFirst = isFirst,
