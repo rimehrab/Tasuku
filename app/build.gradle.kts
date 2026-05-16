@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "dev.rimehrab.tasuku"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "dev.rimehrab.tasuku"
         minSdk = 26
-        targetSdk = 37
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
