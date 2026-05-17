@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import dev.rimehrab.tasuku.BuildConfig
 import dev.rimehrab.tasuku.R
 import dev.rimehrab.tasuku.components.SegmentedCard
 
@@ -124,7 +125,7 @@ class AboutScreen : Screen {
                     SegmentedCard(isFirst = false, isLast = true) {
                         ListItem(
                             headlineContent = { Text(stringResource(R.string.about_version), fontWeight = FontWeight.Medium) },
-                            supportingContent = { Text("Version Test ") },
+                            supportingContent = { Text(BuildConfig.VERSION_NAME) },
                             leadingContent = { Icon(Icons.Default.Info, contentDescription = null) },
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                         )
