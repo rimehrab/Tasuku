@@ -1,6 +1,5 @@
 package dev.rimehrab.tasuku.screens
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
@@ -33,108 +32,92 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.navigator.LocalNavigator
-import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.rimehrab.tasuku.BuildConfig
 import dev.rimehrab.tasuku.R
 import dev.rimehrab.tasuku.components.SegmentedCard
 
-class AboutScreen : Screen {
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AboutScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-
-    @Composable
-    override fun Content() {
-        AboutScreen()
-    }
-    @SuppressLint("NotConstructor")
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun AboutScreen() {
-        val context = LocalContext.current
-        val current = LocalNavigator.currentOrThrow
-        val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-
-        Scaffold(
-            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            topBar = {
-                LargeTopAppBar(
-                    title = {
-                        Text(
-                            stringResource(R.string.menu_about),
-                            fontWeight = FontWeight.Medium
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = {current.pop()}) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                        }
-                    },
-                    scrollBehavior = scrollBehavior,
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        topBar = {
+            LargeTopAppBar(
+                title = {
+                    Text(
+                        stringResource(R.string.menu_about),
+                        fontWeight = FontWeight.Medium
                     )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                 )
+            )
+        }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            item {
+                SegmentedCard(isFirst = true, isLast = false) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.about_source_code), fontWeight = FontWeight.Medium) },
+                        supportingContent = { Text(stringResource(R.string.about_source_code_summary)) },
+                        leadingContent = { Icon(Icons.Default.Code, contentDescription = null) },
+                        modifier = Modifier.clickable {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/rimehrab/Tasuku"))
+                            context.startActivity(intent)
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                    )
+                }
             }
-        ) { innerPadding ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                item {
-                    SegmentedCard(isFirst = true, isLast = false) {
-                        ListItem(
-                            headlineContent = { Text(stringResource(R.string.about_source_code), fontWeight = FontWeight.Medium) },
-                            supportingContent = { Text(stringResource(R.string.about_source_code_summary)) },
-                            leadingContent = { Icon(Icons.Default.Code, contentDescription = null) },
-                            modifier = Modifier.clickable {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/rimehrab/Tasuku"))
-                                context.startActivity(intent)
-                            },
-                            colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                        )
-                    }
-                }
 
-                item {
-                    SegmentedCard(isFirst = false, isLast = false) {
-                        ListItem(
-                            headlineContent = { Text(stringResource(R.string.about_contact_developer), fontWeight = FontWeight.Medium) },
-                            supportingContent = { Text(stringResource(R.string.about_contact_developer_summary)) },
-                            leadingContent = { Icon(Icons.Default.SupportAgent, contentDescription = null) },
-                            modifier = Modifier.clickable {
-                                val email = context.getString(R.string.developer_email)
-                                val intent = Intent(Intent.ACTION_SENDTO).apply {
-                                    data = Uri.parse("mailto:$email")
-                                    putExtra(Intent.EXTRA_SUBJECT, "Tasuku Feedback")
-                                }
-                                context.startActivity(intent)
-                            },
-                            colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                        )
-                    }
+            item {
+                SegmentedCard(isFirst = false, isLast = false) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.about_contact_developer), fontWeight = FontWeight.Medium) },
+                        supportingContent = { Text(stringResource(R.string.about_contact_developer_summary)) },
+                        leadingContent = { Icon(Icons.Default.SupportAgent, contentDescription = null) },
+                        modifier = Modifier.clickable {
+                            val email = context.getString(R.string.developer_email)
+                            val intent = Intent(Intent.ACTION_SENDTO).apply {
+                                data = Uri.parse("mailto:$email")
+                                putExtra(Intent.EXTRA_SUBJECT, "Tasuku Feedback")
+                            }
+                            context.startActivity(intent)
+                        },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                    )
                 }
+            }
 
-                item {
-                    SegmentedCard(isFirst = false, isLast = true) {
-                        ListItem(
-                            headlineContent = { Text(stringResource(R.string.about_version), fontWeight = FontWeight.Medium) },
-                            supportingContent = { Text(BuildConfig.VERSION_NAME) },
-                            leadingContent = { Icon(Icons.Default.Info, contentDescription = null) },
-                            colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                        )
-                    }
+            item {
+                SegmentedCard(isFirst = false, isLast = true) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.about_version), fontWeight = FontWeight.Medium) },
+                        supportingContent = { Text(BuildConfig.VERSION_NAME) },
+                        leadingContent = { Icon(Icons.Default.Info, contentDescription = null) },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                    )
                 }
             }
         }
     }
-
-
-
 }

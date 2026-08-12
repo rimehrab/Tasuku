@@ -44,23 +44,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.navigator.LocalNavigator
-import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.rimehrab.tasuku.R
 import dev.rimehrab.tasuku.components.SegmentedCard
 import dev.rimehrab.tasuku.viewmodel.SettingsViewModel
-
-class AppearanceScreen(
-    private val viewModel: SettingsViewModel
-) : Screen {
-
-    @Composable
-    override fun Content() {
-        val navigator = LocalNavigator.currentOrThrow
-        AppearanceScreen(viewModel = viewModel, onBack = { navigator.pop() })
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

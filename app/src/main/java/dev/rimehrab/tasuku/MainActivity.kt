@@ -4,10 +4,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -16,12 +21,20 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
-import cafe.adriel.voyager.core.annotation.ExperimentalVoyagerApi
-import cafe.adriel.voyager.navigator.CurrentScreen
-import cafe.adriel.voyager.navigator.Navigator
-import cafe.adriel.voyager.transitions.SlideTransition
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.ui.NavDisplay
 import dev.rimehrab.tasuku.data.TaskDatabase
-import dev.rimehrab.tasuku.screens.MainScreen
+import dev.rimehrab.tasuku.navigation.About
+import dev.rimehrab.tasuku.navigation.Appearance
+import dev.rimehrab.tasuku.navigation.Settings
+import dev.rimehrab.tasuku.navigation.Tasks
+import dev.rimehrab.tasuku.screens.AboutScreen
+import dev.rimehrab.tasuku.screens.AppearanceScreen
+import dev.rimehrab.tasuku.screens.SettingsScreen
+import dev.rimehrab.tasuku.screens.TasksScreen
 import dev.rimehrab.tasuku.ui.theme.TasukuTheme
 import dev.rimehrab.tasuku.viewmodel.SettingsViewModel
 import dev.rimehrab.tasuku.viewmodel.TaskViewModel
@@ -64,17 +77,51 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalVoyagerApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MainNavigation(taskViewModel: TaskViewModel, settingsViewModel: SettingsViewModel) {
-    Navigator(MainScreen(taskViewModel, settingsViewModel)) { navigator ->
-        SlideTransition(
-            navigator = navigator,
-            disposeScreenAfterTransitionEnd = true,
-            animationSpec = spring(
-                stiffness = Spring.StiffnessMedium,
-                visibilityThreshold = IntOffset(1, 1)
-            )
-        )
-    }
+    val backStack = rememberNavBackStack(Tasks)
+    val spatialSpec = MaterialTheme.motionScheme.defaultSpatialSpec<IntOffset>()
+
+    NavDisplay(
+        backStack = backStack,
+        onBack = { backStack.removeLastOrNull() },
+        entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator(),
+            rememberViewModelStoreNavEntryDecorator()
+        ),
+        transitionSpec = {
+            slideInHorizontally(spatialSpec) { it } togetherWith fadeOut(tween(220))
+        },
+        popTransitionSpec = {
+            fadeIn(tween(220)) togetherWith slideOutHorizontally(spatialSpec) { it }
+        },
+        predictivePopTransitionSpec = {
+            fadeIn(tween(220)) togetherWith slideOutHorizontally(spatialSpec) { it }
+        },
+        entryProvider = entryProvider {
+            entry<Tasks> {
+                TasksScreen(
+                    taskViewModel = taskViewModel,
+                    onSettingsClick = { backStack.add(Settings) }
+                )
+            }
+            entry<Settings> {
+                SettingsScreen(
+                    onBack = { backStack.removeLastOrNull() },
+                    onNavigateToAppearance = { backStack.add(Appearance) },
+                    onNavigateToAbout = { backStack.add(About) }
+                )
+            }
+            entry<Appearance> {
+                AppearanceScreen(
+                    viewModel = settingsViewModel,
+                    onBack = { backStack.removeLastOrNull() }
+                )
+            }
+            entry<About> {
+                AboutScreen(onBack = { backStack.removeLastOrNull() })
+            }
+        }
+    )
 }

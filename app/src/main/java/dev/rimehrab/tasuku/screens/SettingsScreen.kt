@@ -27,27 +27,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.navigator.LocalNavigator
-import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.rimehrab.tasuku.R
 import dev.rimehrab.tasuku.components.SegmentedCard
-import dev.rimehrab.tasuku.viewmodel.SettingsViewModel
-
-class SettingsScreen(
-    private val viewModel: SettingsViewModel
-) : Screen {
-
-    @Composable
-    override fun Content() {
-        val navigator = LocalNavigator.currentOrThrow
-        SettingsScreen(
-            onBack = { navigator.pop() },
-            onNavigateToAppearance = { navigator.push(AppearanceScreen(viewModel)) },
-            onNavigateToAbout = { navigator.push(AboutScreen()) }
-        )
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -73,78 +73,67 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.navigator.LocalNavigator
-import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.rimehrab.tasuku.R
 import dev.rimehrab.tasuku.data.Task
-import dev.rimehrab.tasuku.viewmodel.SettingsViewModel
 import dev.rimehrab.tasuku.viewmodel.TaskViewModel
 import kotlinx.coroutines.launch
 
-class MainScreen(
-    private val taskViewModel: TaskViewModel,
-    private val settingsViewModel: SettingsViewModel
-) : Screen {
+@Composable
+fun TasksScreen(taskViewModel: TaskViewModel, onSettingsClick: () -> Unit) {
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
-    @Composable
-    override fun Content() {
-        val navigator = LocalNavigator.currentOrThrow
-        val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-        val scope = rememberCoroutineScope()
-
-        ModalNavigationDrawer(
-            drawerState = drawerState,
-            drawerContent = {
-                ModalDrawerSheet(
-                    drawerContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    drawerShape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.app_name),
-                        modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 28.dp, bottom = 12.dp),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet(
+                drawerContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                drawerShape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.app_name),
+                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 28.dp, bottom = 12.dp),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                NavigationDrawerItem(
+                    label = { Text(stringResource(R.string.menu_tasks), fontWeight = FontWeight.Medium) },
+                    selected = true,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                    },
+                    icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = null) },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = NavigationDrawerItemDefaults.colors(
+                        unselectedContainerColor = Color.Transparent,
+                        selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        selectedTextColor = MaterialTheme.colorScheme.onSecondaryContainer
                     )
-                    NavigationDrawerItem(
-                        label = { Text(stringResource(R.string.menu_tasks), fontWeight = FontWeight.Medium) },
-                        selected = true,
-                        onClick = {
-                            scope.launch { drawerState.close() }
-                        },
-                        icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = null) },
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
-                        shape = RoundedCornerShape(28.dp),
-                        colors = NavigationDrawerItemDefaults.colors(
-                            unselectedContainerColor = Color.Transparent,
-                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            selectedTextColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
+                )
+                NavigationDrawerItem(
+                    label = { Text(stringResource(R.string.menu_settings), fontWeight = FontWeight.Medium) },
+                    selected = false,
+                    onClick = {
+                        onSettingsClick()
+                        scope.launch { drawerState.close() }
+                    },
+                    icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = NavigationDrawerItemDefaults.colors(
+                        unselectedContainerColor = Color.Transparent,
+                        selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        selectedTextColor = MaterialTheme.colorScheme.onSecondaryContainer
                     )
-                    NavigationDrawerItem(
-                        label = { Text(stringResource(R.string.menu_settings), fontWeight = FontWeight.Medium) },
-                        selected = false,
-                        onClick = {
-                            navigator.push(SettingsScreen(settingsViewModel))
-                            scope.launch { drawerState.close() }
-                        },
-                        icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
-                        shape = RoundedCornerShape(28.dp),
-                        colors = NavigationDrawerItemDefaults.colors(
-                            unselectedContainerColor = Color.Transparent,
-                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            selectedTextColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    )
-                }
+                )
             }
-        ) {
-            TodoScreen(taskViewModel) { scope.launch { drawerState.open() } }
         }
+    ) {
+        TodoScreen(taskViewModel) { scope.launch { drawerState.open() } }
     }
 }
 
