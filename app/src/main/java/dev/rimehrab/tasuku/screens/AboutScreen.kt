@@ -14,9 +14,8 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.SupportAgent
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.rimehrab.tasuku.BuildConfig
 import dev.rimehrab.tasuku.R
+import dev.rimehrab.tasuku.components.CollapsingTopAppBar
 import dev.rimehrab.tasuku.components.SegmentedCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,23 +46,14 @@ fun AboutScreen(onBack: () -> Unit) {
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         topBar = {
-            LargeTopAppBar(
-                title = {
-                    Text(
-                        stringResource(R.string.menu_about),
-                        fontWeight = FontWeight.Medium
-                    )
-                },
+            CollapsingTopAppBar(
+                title = stringResource(R.string.menu_about),
+                scrollBehavior = scrollBehavior,
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    FilledTonalIconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                },
-                scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                )
+                }
             )
         }
     ) { innerPadding ->

@@ -6,6 +6,7 @@ import dev.rimehrab.tasuku.data.Task
 import dev.rimehrab.tasuku.data.TaskDao
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -18,17 +19,62 @@ class TaskViewModel(private val taskDao: TaskDao) : ViewModel() {
             initialValue = emptyList()
         )
 
-    fun addTask(title: String) {
+    val pendingTasks: StateFlow<List<Task>> = tasks
+        .map { list -> list.filter { !it.isCompleted } }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    val completedTasks: StateFlow<List<Task>> = tasks
+        .map { list -> list.filter { it.isCompleted } }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    fun addTask(
+        title: String,
+        description: String = "",
+        dueDate: Long? = null,
+        dueTimeMinutes: Int? = null,
+        tag: String? = null
+    ) {
         if (title.isBlank()) return
         viewModelScope.launch {
-            taskDao.insertTask(Task(title = title))
+            taskDao.insertTask(
+                Task(
+                    title = title,
+                    description = description,
+                    dueDate = dueDate,
+                    dueTimeMinutes = dueTimeMinutes,
+                    tag = tag
+                )
+            )
         }
     }
 
-    fun updateTaskTitle(task: Task, newTitle: String) {
-        if (newTitle.isBlank() || newTitle == task.title) return
+    fun updateTask(
+        task: Task,
+        title: String,
+        description: String = "",
+        dueDate: Long? = null,
+        dueTimeMinutes: Int? = null,
+        tag: String? = null
+    ) {
+        if (title.isBlank()) return
         viewModelScope.launch {
-            taskDao.updateTask(task.copy(title = newTitle))
+            taskDao.updateTask(
+                task.copy(
+                    title = title,
+                    description = description,
+                    dueDate = dueDate,
+                    dueTimeMinutes = dueTimeMinutes,
+                    tag = tag
+                )
+            )
         }
     }
 

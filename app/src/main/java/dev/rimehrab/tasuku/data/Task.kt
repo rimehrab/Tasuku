@@ -8,5 +8,9 @@ data class Task(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val title: String,
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    val description: String = "",
+    val dueDate: Long? = null,
+    val dueTimeMinutes: Int? = null,
+    val tag: String? = null
 )
