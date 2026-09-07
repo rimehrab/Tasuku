@@ -35,6 +35,13 @@ class TaskViewModel(private val taskDao: TaskDao) : ViewModel() {
             initialValue = emptyList()
         )
 
+    val trashedTasks: StateFlow<List<Task>> = taskDao.getTrashedTasks()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
     fun addTask(
         title: String,
         description: String = "",
@@ -84,9 +91,27 @@ class TaskViewModel(private val taskDao: TaskDao) : ViewModel() {
         }
     }
 
-    fun deleteTask(task: Task) {
+    fun trashTask(task: Task) {
+        viewModelScope.launch {
+            taskDao.updateTask(task.copy(isTrashed = true))
+        }
+    }
+
+    fun restoreTask(task: Task) {
+        viewModelScope.launch {
+            taskDao.updateTask(task.copy(isTrashed = false))
+        }
+    }
+
+    fun permanentlyDeleteTask(task: Task) {
         viewModelScope.launch {
             taskDao.deleteTask(task)
+        }
+    }
+
+    fun emptyTrash() {
+        viewModelScope.launch {
+            taskDao.deleteAllTrashed()
         }
     }
 }

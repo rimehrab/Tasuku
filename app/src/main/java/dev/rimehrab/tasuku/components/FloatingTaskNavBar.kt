@@ -1,6 +1,7 @@
 package dev.rimehrab.tasuku.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
@@ -11,7 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +24,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -30,9 +33,6 @@ enum class TaskTab {
     PENDING,
     COMPLETED
 }
-
-private val NavTrackColor = Color(0xFF1C1B1F)
-private val NavContentColor = Color(0xFFF5F0F7)
 
 @Composable
 fun FloatingTaskNavBar(
@@ -42,13 +42,18 @@ fun FloatingTaskNavBar(
     onAddClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val haptic = LocalHapticFeedback.current
+    val trackContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val outlineBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Surface(
             shape = RoundedCornerShape(50),
-            color = NavTrackColor,
+            color = trackContainerColor,
+            border = outlineBorder,
             modifier = Modifier.height(56.dp)
         ) {
             Row(
@@ -59,27 +64,39 @@ fun FloatingTaskNavBar(
                     label = "Pending",
                     icon = Icons.Default.Schedule,
                     selected = selectedTab == TaskTab.PENDING,
-                    onClick = { onTabSelected(TaskTab.PENDING) }
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onTabSelected(TaskTab.PENDING)
+                    }
                 )
                 NavSegment(
                     label = "Completed",
                     icon = Icons.Default.CheckCircle,
                     selected = selectedTab == TaskTab.COMPLETED,
-                    onClick = { onTabSelected(TaskTab.COMPLETED) }
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onTabSelected(TaskTab.COMPLETED)
+                    }
                 )
             }
         }
 
         NavCircleButton(
-            icon = Icons.Default.Delete,
+            icon = Icons.Default.DeleteOutline,
             contentDescription = "Trash",
-            onClick = onTrashClick
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onTrashClick()
+            }
         )
 
         NavCircleButton(
             icon = Icons.Default.Add,
             contentDescription = "Add Task",
-            onClick = onAddClick
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onAddClick()
+            }
         )
     }
 }
@@ -93,7 +110,8 @@ private fun NavCircleButton(
     Surface(
         onClick = onClick,
         shape = CircleShape,
-        color = NavTrackColor,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         modifier = Modifier
             .padding(start = 8.dp)
             .size(56.dp)
@@ -102,7 +120,7 @@ private fun NavCircleButton(
             Icon(
                 icon,
                 contentDescription = contentDescription,
-                tint = NavContentColor
+                tint = MaterialTheme.colorScheme.onSurface
             )
         }
     }
@@ -115,12 +133,16 @@ private fun NavSegment(
     selected: Boolean,
     onClick: () -> Unit
 ) {
+    val selectedBg = MaterialTheme.colorScheme.primary
+    val selectedContent = MaterialTheme.colorScheme.onPrimary
+    val unselectedContent = MaterialTheme.colorScheme.onSurfaceVariant
+
     val backgroundColor by animateColorAsState(
-        targetValue = if (selected) NavContentColor else Color.Transparent,
+        targetValue = if (selected) selectedBg else Color.Transparent,
         label = "navSegmentBackground"
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) NavTrackColor else NavContentColor,
+        targetValue = if (selected) selectedContent else unselectedContent,
         label = "navSegmentContent"
     )
 

@@ -12,5 +12,6 @@ data class Task(
     val description: String = "",
     val dueDate: Long? = null,
     val dueTimeMinutes: Int? = null,
-    val tag: String? = null
+    val tag: String? = null,
+    val isTrashed: Boolean = false
 )

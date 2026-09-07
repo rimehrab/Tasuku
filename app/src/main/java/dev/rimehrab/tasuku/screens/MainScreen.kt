@@ -1,23 +1,28 @@
 package dev.rimehrab.tasuku.screens
 
-import android.widget.Toast
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,29 +31,32 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -71,6 +79,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -78,30 +87,38 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import dev.rimehrab.tasuku.R
 import dev.rimehrab.tasuku.components.CollapsingTopAppBar
 import dev.rimehrab.tasuku.components.FloatingTaskNavBar
+import dev.rimehrab.tasuku.components.RoundedCheckbox
 import dev.rimehrab.tasuku.components.TaskTab
 import dev.rimehrab.tasuku.data.Task
+import dev.rimehrab.tasuku.util.animatedStrikethrough
 import dev.rimehrab.tasuku.util.formatDueDate
 import dev.rimehrab.tasuku.util.formatDueTime
 import dev.rimehrab.tasuku.viewmodel.TaskViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 private val TagPresets = listOf("Work", "Home", "Personal")
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalFoundationApi::class)
 @Composable
-fun TasksScreen(taskViewModel: TaskViewModel, onSettingsClick: () -> Unit) {
-    val context = LocalContext.current
+fun TasksScreen(
+    taskViewModel: TaskViewModel,
+    onSettingsClick: () -> Unit,
+    onTrashClick: () -> Unit
+) {
     val pendingTasks by taskViewModel.pendingTasks.collectAsState()
     val completedTasks by taskViewModel.completedTasks.collectAsState()
     var selectedTab by rememberSaveable { mutableStateOf(TaskTab.PENDING) }
@@ -177,22 +194,74 @@ fun TasksScreen(taskViewModel: TaskViewModel, onSettingsClick: () -> Unit) {
                 ),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                itemsIndexed(tasks, key = { _, task -> task.id }) { index, task ->
-                    val isFirst = index == 0
-                    val isLast = index == tasks.size - 1
-
-                    Box(modifier = Modifier.animateItem()) {
-                        TaskItem(
-                            task = task,
-                            isFirst = isFirst,
-                            isLast = isLast,
-                            onToggle = { taskViewModel.toggleTaskCompletion(task) },
-                            onDelete = { taskViewModel.deleteTask(task) },
-                            onLongClick = {
-                                editingTask = task
-                                showEditSheet = true
+                if (tasks.isEmpty()) {
+                    item(key = "empty_state") {
+                        Box(
+                            modifier = Modifier
+                                .fillParentMaxSize()
+                                .padding(bottom = 96.dp)
+                                .animateItem(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                                modifier = Modifier.padding(32.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(24.dp),
+                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    modifier = Modifier.size(72.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            if (selectedTab == TaskTab.PENDING) Icons.Default.TaskAlt else Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(36.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = stringResource(
+                                        if (selectedTab == TaskTab.PENDING) R.string.tasks_empty_pending
+                                        else R.string.tasks_empty_completed
+                                    ),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = stringResource(
+                                        if (selectedTab == TaskTab.PENDING) R.string.tasks_empty_pending_description
+                                        else R.string.tasks_empty_completed_description
+                                    ),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
-                        )
+                        }
+                    }
+                } else {
+                    itemsIndexed(tasks, key = { _, task -> task.id }) { index, task ->
+                        val isFirst = index == 0
+                        val isLast = index == tasks.size - 1
+
+                        Box(modifier = Modifier.animateItem()) {
+                            TaskItem(
+                                task = task,
+                                isFirst = isFirst,
+                                isLast = isLast,
+                                onToggle = { taskViewModel.toggleTaskCompletion(task) },
+                                onDelete = { taskViewModel.trashTask(task) },
+                                onLongClick = {
+                                    editingTask = task
+                                    showEditSheet = true
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -201,7 +270,7 @@ fun TasksScreen(taskViewModel: TaskViewModel, onSettingsClick: () -> Unit) {
         FloatingTaskNavBar(
             selectedTab = selectedTab,
             onTabSelected = { selectedTab = it },
-            onTrashClick = { Toast.makeText(context, "WIP", Toast.LENGTH_SHORT).show() },
+            onTrashClick = onTrashClick,
             onAddClick = { showAddSheet = true },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -307,6 +376,8 @@ private fun TaskFormSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .imePadding()
                 .padding(start = 24.dp, end = 24.dp, bottom = 48.dp, top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
@@ -339,7 +410,14 @@ private fun TaskFormSheet(
                 OutlinedButton(
                     onClick = { showDatePicker = true },
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(50)
+                    shape = RoundedCornerShape(50),
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                        contentColor = if (dueDate != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                    ),
+                    border = BorderStroke(
+                        1.dp,
+                        if (dueDate != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                    )
                 ) {
                     Icon(
                         Icons.Default.CalendarToday,
@@ -351,7 +429,14 @@ private fun TaskFormSheet(
                 OutlinedButton(
                     onClick = { showTimePicker = true },
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(50)
+                    shape = RoundedCornerShape(50),
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                        contentColor = if (dueTimeMinutes != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                    ),
+                    border = BorderStroke(
+                        1.dp,
+                        if (dueTimeMinutes != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                    )
                 ) {
                     Icon(
                         Icons.Default.AccessTime,
@@ -386,7 +471,9 @@ private fun TaskFormSheet(
                 )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
                 ) {
                     TagPresets.forEach { preset ->
                         TagChip(
@@ -399,6 +486,17 @@ private fun TaskFormSheet(
                             }
                         )
                     }
+                    val currentTag = tag
+                    val isCustomTag = currentTag != null && currentTag !in TagPresets
+                    TagChip(
+                        label = if (isCustomTag) currentTag else "+ Add Tag",
+                        icon = Icons.AutoMirrored.Filled.Label,
+                        selected = isCustomTag,
+                        onClick = {
+                            customTagText = currentTag?.takeIf { it !in TagPresets } ?: ""
+                            showCustomTagField = true
+                        }
+                    )
                 }
                 if (showCustomTagField) {
                     OutlinedTextField(
@@ -418,18 +516,6 @@ private fun TaskFormSheet(
                             }
                         )
                     )
-                } else {
-                    val currentTag = tag
-                    val isCustomTag = currentTag != null && currentTag !in TagPresets
-                    TagChip(
-                        label = if (isCustomTag) currentTag!! else "+ Add Tag",
-                        icon = Icons.Default.Label,
-                        selected = isCustomTag,
-                        onClick = {
-                            customTagText = currentTag?.takeIf { it !in TagPresets } ?: ""
-                            showCustomTagField = true
-                        }
-                    )
                 }
             }
 
@@ -438,7 +524,11 @@ private fun TaskFormSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(16.dp),
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
             ) {
                 Text(
                     confirmLabel,
@@ -454,7 +544,7 @@ private fun tagIcon(tag: String): ImageVector = when (tag) {
     "Work" -> Icons.Default.Work
     "Home" -> Icons.Default.Home
     "Personal" -> Icons.Default.Person
-    else -> Icons.Default.Label
+    else -> Icons.AutoMirrored.Filled.Label
 }
 
 @Composable
@@ -471,7 +561,7 @@ private fun TagChip(
     val contentColor = if (selected)
         MaterialTheme.colorScheme.onPrimaryContainer
     else
-        MaterialTheme.colorScheme.onSurfaceVariant
+        MaterialTheme.colorScheme.onSurface
 
     Surface(
         onClick = onClick,
@@ -578,8 +668,23 @@ fun TaskItem(
     onDelete: () -> Unit,
     onLongClick: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
+    val coroutineScope = rememberCoroutineScope()
+    var isChecked by remember(task.id, task.isCompleted) {
+        mutableStateOf(task.isCompleted)
+    }
+
+    val strikeProgress by animateFloatAsState(
+        targetValue = if (isChecked) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = 180,
+            easing = FastOutSlowInEasing
+        ),
+        label = "strikeProgress"
+    )
+
     val backgroundColor by animateColorAsState(
-        targetValue = if (task.isCompleted)
+        targetValue = if (isChecked)
             MaterialTheme.colorScheme.surfaceContainerLow
         else
             MaterialTheme.colorScheme.surfaceBright,
@@ -610,7 +715,10 @@ fun TaskItem(
             .clip(shape)
             .combinedClickable(
                 onClick = { },
-                onLongClick = onLongClick
+                onLongClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onLongClick()
+                }
             ),
         shape = shape,
         colors = CardDefaults.cardColors(containerColor = backgroundColor)
@@ -620,27 +728,39 @@ fun TaskItem(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Checkbox(
-                    checked = task.isCompleted,
-                    onCheckedChange = { onToggle() }
+                RoundedCheckbox(
+                    checked = isChecked,
+                    onValueChange = { checked ->
+                        isChecked = checked
+                        coroutineScope.launch {
+                            delay(180.milliseconds)
+                            onToggle()
+                        }
+                    }
                 )
                 Text(
                     text = task.title,
                     modifier = Modifier
                         .weight(1f)
-                        .padding(start = 12.dp),
+                        .padding(start = 12.dp)
+                        .animatedStrikethrough(
+                            progress = strikeProgress,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
-                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
-                    color = if (task.isCompleted)
+                    color = if (isChecked)
                         MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     else
                         MaterialTheme.colorScheme.onSurface
                 )
-                IconButton(onClick = onDelete) {
+                IconButton(onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onDelete()
+                }) {
                     Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Delete Task",
+                        Icons.Default.DeleteOutline,
+                        contentDescription = "Trash Task",
                         tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
                     )
                 }
@@ -649,7 +769,7 @@ fun TaskItem(
             val hasMetadata = task.dueDate != null || task.dueTimeMinutes != null || task.tag != null
             if (hasMetadata) {
                 Row(
-                    modifier = Modifier.padding(start = 48.dp, top = 4.dp),
+                    modifier = Modifier.padding(start = 36.dp, top = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     task.dueDate?.let {
@@ -667,7 +787,7 @@ fun TaskItem(
             if (task.description.isNotBlank()) {
                 Text(
                     text = task.description,
-                    modifier = Modifier.padding(start = 48.dp, top = 8.dp),
+                    modifier = Modifier.padding(start = 36.dp, top = 8.dp),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,

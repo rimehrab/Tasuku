@@ -19,4 +19,16 @@
     <string name="about_contact_developer_summary">Give feedback to developer via Email</string>
     <string name="developer_email_label">Email</string>
     <string name="developer_email">contact@rimehrab.is-a.dev</string>
+    <string name="menu_trash">Trash</string>
+    <string name="trash_empty">Trash is empty</string>
+    <string name="trash_empty_description">Deleted tasks will appear here</string>
+    <string name="tasks_empty_pending">No pending tasks</string>
+    <string name="tasks_empty_pending_description">Tap + to add a new task</string>
+    <string name="tasks_empty_completed">No completed tasks</string>
+    <string name="tasks_empty_completed_description">Completed tasks will appear here</string>
+    <string name="empty_trash">Empty Trash</string>
+    <string name="empty_trash_confirmation">Permanently delete all tasks in the trash? This action cannot be undone.</string>
+    <string name="empty_trash_confirm_button">Delete All</string>
+    <string name="restore_task">Restore</string>
+    <string name="delete_forever">Delete forever</string>
 </resources>

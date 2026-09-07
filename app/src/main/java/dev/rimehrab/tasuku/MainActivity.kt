@@ -6,9 +6,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -18,9 +19,10 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -34,16 +36,19 @@ import dev.rimehrab.tasuku.navigation.About
 import dev.rimehrab.tasuku.navigation.Appearance
 import dev.rimehrab.tasuku.navigation.Settings
 import dev.rimehrab.tasuku.navigation.Tasks
+import dev.rimehrab.tasuku.navigation.Trash
 import dev.rimehrab.tasuku.screens.AboutScreen
 import dev.rimehrab.tasuku.screens.AppearanceScreen
 import dev.rimehrab.tasuku.screens.SettingsScreen
 import dev.rimehrab.tasuku.screens.TasksScreen
+import dev.rimehrab.tasuku.screens.TrashScreen
 import dev.rimehrab.tasuku.ui.theme.TasukuTheme
 import dev.rimehrab.tasuku.viewmodel.SettingsViewModel
 import dev.rimehrab.tasuku.viewmodel.TaskViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
@@ -55,13 +60,14 @@ class MainActivity : ComponentActivity() {
                 else -> isSystemInDarkTheme()
             }
 
-            SideEffect {
+            DisposableEffect(darkTheme) {
                 val barStyle = if (darkTheme) {
                     SystemBarStyle.dark(Color.TRANSPARENT)
                 } else {
                     SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
                 }
                 enableEdgeToEdge(statusBarStyle = barStyle, navigationBarStyle = barStyle)
+                onDispose {}
             }
 
             TasukuTheme(
@@ -94,6 +100,23 @@ class MainActivity : ComponentActivity() {
 fun MainNavigation(taskViewModel: TaskViewModel, settingsViewModel: SettingsViewModel) {
     val backStack = rememberNavBackStack(Tasks)
     val spatialSpec = MaterialTheme.motionScheme.defaultSpatialSpec<IntOffset>()
+    val effectsSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
+
+    val enterTransition = scaleIn(animationSpec = effectsSpec, initialScale = 0.92f) +
+            slideInHorizontally(animationSpec = spatialSpec, initialOffsetX = { it }) +
+            fadeIn(animationSpec = effectsSpec)
+
+    val exitTransition = scaleOut(animationSpec = effectsSpec, targetScale = 0.92f) +
+            slideOutHorizontally(animationSpec = spatialSpec, targetOffsetX = { -(it * 0.12f).toInt() }) +
+            fadeOut(animationSpec = effectsSpec)
+
+    val popEnterTransition = scaleIn(animationSpec = effectsSpec, initialScale = 0.92f) +
+            slideInHorizontally(animationSpec = spatialSpec, initialOffsetX = { -(it * 0.12f).toInt() }) +
+            fadeIn(animationSpec = effectsSpec)
+
+    val popExitTransition = scaleOut(animationSpec = effectsSpec, targetScale = 0.92f) +
+            slideOutHorizontally(animationSpec = spatialSpec, targetOffsetX = { it }) +
+            fadeOut(animationSpec = effectsSpec)
 
     NavDisplay(
         backStack = backStack,
@@ -102,20 +125,15 @@ fun MainNavigation(taskViewModel: TaskViewModel, settingsViewModel: SettingsView
             rememberSaveableStateHolderNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator()
         ),
-        transitionSpec = {
-            slideInHorizontally(spatialSpec) { it } togetherWith fadeOut(tween(220))
-        },
-        popTransitionSpec = {
-            fadeIn(tween(220)) togetherWith slideOutHorizontally(spatialSpec) { it }
-        },
-        predictivePopTransitionSpec = {
-            fadeIn(tween(220)) togetherWith slideOutHorizontally(spatialSpec) { it }
-        },
+        transitionSpec = { enterTransition togetherWith exitTransition },
+        popTransitionSpec = { popEnterTransition togetherWith popExitTransition },
+        predictivePopTransitionSpec = { popEnterTransition togetherWith popExitTransition },
         entryProvider = entryProvider {
             entry<Tasks> {
                 TasksScreen(
                     taskViewModel = taskViewModel,
-                    onSettingsClick = { backStack.add(Settings) }
+                    onSettingsClick = { backStack.add(Settings) },
+                    onTrashClick = { backStack.add(Trash) }
                 )
             }
             entry<Settings> {
@@ -133,6 +151,12 @@ fun MainNavigation(taskViewModel: TaskViewModel, settingsViewModel: SettingsView
             }
             entry<About> {
                 AboutScreen(onBack = { backStack.removeLastOrNull() })
+            }
+            entry<Trash> {
+                TrashScreen(
+                    taskViewModel = taskViewModel,
+                    onBack = { backStack.removeLastOrNull() }
+                )
             }
         }
     )

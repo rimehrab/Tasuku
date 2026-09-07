@@ -14,3 +14,6 @@ data object Appearance : NavKey
 
 @Serializable
 data object About : NavKey
+
+@Serializable
+data object Trash : NavKey
