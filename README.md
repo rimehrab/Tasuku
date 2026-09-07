@@ -7,11 +7,11 @@
 Tasuku is a minimalist, Android to-do application built with Kotlin and Jetpack Compose. It follows the "Material Expressive" design, prioritizing a clean, modern interface and a seamless user experience.
 
 ## ✨ Key features
-* **Material 3 Expressive design:** Sleek and modern UI with fluid transitions and card-based layouts.
-* **Dynamic color:** Seamlessly adapts to your wallpaper's color scheme on Android 12+ via Material You.
-* **Theming modes:** Full support for Light, Dark, and System (auto-switching) themes.
-* **Minimalist workflow:** Single-screen focus for quick task entry and management.
-* **Offline-first:** All tasks are stored locally via Room Database — no accounts or network required.
+* **Material 3 Expressive design:** Sleek and modern UI with fluid motion, custom animations, and card-based layouts.
+* **Task management & details:** Organize tasks with descriptions, due dates, due times, and customizable tags.
+* **Tabs & trash recovery:** Separate views for pending and completed tasks, plus a trash bin to restore deleted tasks.
+* **Dynamic color & theming:** Full support for Light, Dark, and System themes with dynamic Material You wallpaper palettes on Android 12+.
+* **Offline-first:** All tasks are stored locally via Room Database — no accounts, tracking, or network required.
 
 ## ⬇️ Downloads
 *The app is currently in early development. You can download the latest debug APK from the GitHub Actions artifacts.*
@@ -20,7 +20,7 @@ Tasuku is a minimalist, Android to-do application built with Kotlin and Jetpack 
 | ![Screenshot 1](fastlane/metadata/android/en-US/images/phoneScreenshots/1.png) | ![Screenshot 2](fastlane/metadata/android/en-US/images/phoneScreenshots/2.png) | ![Screenshot 3](fastlane/metadata/android/en-US/images/phoneScreenshots/3.png) |
 |--------------------------------------------------------------------------------|--------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
 | ![Screenshot 4](fastlane/metadata/android/en-US/images/phoneScreenshots/4.png) | ![Screenshot 5](fastlane/metadata/android/en-US/images/phoneScreenshots/5.png) | ![Screenshot 6](fastlane/metadata/android/en-US/images/phoneScreenshots/6.png) |
-| ![Screenshot 7](fastlane/metadata/android/en-US/images/phoneScreenshots/7.png) | | |
+| ![Screenshot 7](fastlane/metadata/android/en-US/images/phoneScreenshots/7.png) | ![Screenshot 8](fastlane/metadata/android/en-US/images/phoneScreenshots/8.png) | ![Screenshot 9](fastlane/metadata/android/en-US/images/phoneScreenshots/9.png) |
 
 ## 🧰 Build instructions
 1. Clone this repository:
@@ -35,7 +35,8 @@ git clone https://github.com/rimehrab/tasuku.git
 * **Programming language:** Kotlin
 * **UI Framework:** Jetpack Compose
 * **Design framework:** Material 3 Expressive
-* **Architecture:** MVVM
+* **Navigation:** Jetpack Navigation 3
+* **Architecture:** MVVM (ViewModel, Coroutines, StateFlow)
 * **Database:** Room (SQLite)
 * **CI/CD:** GitHub Actions
 
