@@ -22,13 +22,47 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+            if (!keystorePath.isNullOrEmpty()) {
+                val keystoreFile = file(keystorePath).takeIf { it.exists() }
+                    ?: rootProject.file(keystorePath).takeIf { it.exists() }
+                if (keystoreFile != null) {
+                    storeFile = keystoreFile
+                    storePassword = System.getenv("KEYSTORE_PASSWORD")
+                    keyAlias = System.getenv("KEY_ALIAS")
+                    keyPassword = System.getenv("KEY_PASSWORD")
+                }
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+            if (!keystorePath.isNullOrEmpty()) {
+                val keystoreFile = file(keystorePath).takeIf { it.exists() }
+                    ?: rootProject.file(keystorePath).takeIf { it.exists() }
+                if (keystoreFile != null) {
+                    signingConfig = signingConfigs.getByName("release")
+                }
+            }
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+            if (!keystorePath.isNullOrEmpty()) {
+                val keystoreFile = file(keystorePath).takeIf { it.exists() }
+                    ?: rootProject.file(keystorePath).takeIf { it.exists() }
+                if (keystoreFile != null) {
+                    signingConfig = signingConfigs.getByName("release")
+                }
+            }
         }
     }
     compileOptions {
