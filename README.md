@@ -27,7 +27,7 @@ Tasuku is a minimalist, Android to-do application built with Kotlin and Jetpack 
 ```bash
 git clone https://github.com/rimehrab/tasuku.git
 ```
-2. Open the project in IntelliJ IDEA Ultimate or Android Studio.
+2. Open the project in Android Studio Latest Beta.
 3. Sync Gradle files and resolve dependencies.
 4. Run the project on an emulator or a physical device.
 
