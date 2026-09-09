@@ -1,0 +1,3 @@
+- Prevent task form state loss on screen rotation
+- Adapt top app bar, bottom sheet, and empty states for landscape orientation
+- Preserve dialog visibility across configuration changes
