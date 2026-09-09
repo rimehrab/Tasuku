@@ -1,5 +1,6 @@
 package dev.rimehrab.tasuku.components
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -19,16 +20,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp as lerpDp
 
-private val ExpandedHeight = 152.dp
+private val PortraitExpandedHeight = 152.dp
+private val LandscapeExpandedHeight = 88.dp
 private val CollapsedHeight = 56.dp
+
 private val ExpandedTitleStart = 24.dp
-private val ExpandedTitleBottom = 32.dp
+private val PortraitExpandedTitleBottom = 32.dp
+private val LandscapeExpandedTitleBottom = 14.dp
+
 private val CollapsedTitleStartWithIcon = 72.dp
 private val CollapsedTitleBottom = 14.dp
 private val IconStart = 16.dp
@@ -43,8 +49,14 @@ fun CollapsingTopAppBar(
     actions: (@Composable () -> Unit)? = null,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainer
 ) {
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    val currentExpandedHeight = if (isLandscape) LandscapeExpandedHeight else PortraitExpandedHeight
+    val currentExpandedTitleBottom = if (isLandscape) LandscapeExpandedTitleBottom else PortraitExpandedTitleBottom
+
     val density = LocalDensity.current
-    val expandedHeightPx = with(density) { ExpandedHeight.toPx() }
+    val expandedHeightPx = with(density) { currentExpandedHeight.toPx() }
     val collapsedHeightPx = with(density) { CollapsedHeight.toPx() }
 
     SideEffect {
@@ -58,12 +70,18 @@ fun CollapsingTopAppBar(
     val barHeight = with(density) { (expandedHeightPx + scrollBehavior.state.heightOffset).toDp() }
 
     val collapsedTitleStart = if (navigationIcon != null) CollapsedTitleStartWithIcon else ExpandedTitleStart
-    val titleStart = lerpDp(ExpandedTitleStart, collapsedTitleStart, fraction)
-    val titleBottom = lerpDp(ExpandedTitleBottom, CollapsedTitleBottom, fraction)
+    val expandedTitleStart = if (isLandscape && navigationIcon != null) CollapsedTitleStartWithIcon else ExpandedTitleStart
 
-    val expandedFontSizeSp = MaterialTheme.typography.headlineLarge.fontSize.value
+    val titleStart = lerpDp(expandedTitleStart, collapsedTitleStart, fraction)
+    val titleBottom = lerpDp(currentExpandedTitleBottom, CollapsedTitleBottom, fraction)
+
+    val expandedFontSizeSp = if (isLandscape) {
+        MaterialTheme.typography.headlineMedium.fontSize.value
+    } else {
+        MaterialTheme.typography.headlineLarge.fontSize.value
+    }
     val collapsedFontSizeSp = MaterialTheme.typography.titleLarge.fontSize.value
-    val targetScale = collapsedFontSizeSp / expandedFontSizeSp
+    val targetScale = (collapsedFontSizeSp / expandedFontSizeSp).coerceAtMost(1f)
     val scale = 1f - (1f - targetScale) * fraction
 
     Box(
@@ -109,7 +127,7 @@ fun CollapsingTopAppBar(
                 ),
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Medium,
-            style = MaterialTheme.typography.headlineLarge,
+            style = if (isLandscape) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineLarge,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )

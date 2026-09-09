@@ -1,5 +1,6 @@
 package dev.rimehrab.tasuku.screens
 
+import android.content.res.Configuration
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
@@ -49,7 +50,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,6 +58,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -77,8 +79,10 @@ fun TrashScreen(
 ) {
     val trashedTasks by taskViewModel.trashedTasks.collectAsState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    var showEmptyTrashDialog by remember { mutableStateOf(false) }
+    var showEmptyTrashDialog by rememberSaveable { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     if (showEmptyTrashDialog) {
         AlertDialog(
@@ -159,30 +163,30 @@ fun TrashScreen(
                     Box(
                         modifier = Modifier
                             .fillParentMaxSize()
-                            .padding(bottom = 64.dp)
+                            .padding(bottom = if (isLandscape) 32.dp else 64.dp)
                             .animateItem(),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center,
-                            modifier = Modifier.padding(32.dp)
+                            modifier = Modifier.padding(if (isLandscape) 16.dp else 32.dp)
                         ) {
                             Surface(
-                                shape = RoundedCornerShape(24.dp),
+                                shape = RoundedCornerShape(if (isLandscape) 18.dp else 24.dp),
                                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                modifier = Modifier.size(72.dp)
+                                modifier = Modifier.size(if (isLandscape) 56.dp else 72.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         Icons.Default.DeleteOutline,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(36.dp)
+                                        modifier = Modifier.size(if (isLandscape) 28.dp else 36.dp)
                                     )
                                 }
                             }
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(if (isLandscape) 8.dp else 16.dp))
                             Text(
                                 text = stringResource(R.string.trash_empty),
                                 style = MaterialTheme.typography.titleMedium,

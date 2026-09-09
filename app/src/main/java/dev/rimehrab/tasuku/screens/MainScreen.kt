@@ -1,5 +1,6 @@
 package dev.rimehrab.tasuku.screens
 
+import android.content.res.Configuration
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -26,6 +27,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
@@ -39,18 +41,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
@@ -89,6 +90,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -126,10 +128,8 @@ fun TasksScreen(
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val listState = rememberLazyListState()
-
-    var editingTask by remember { mutableStateOf<Task?>(null) }
-    var showEditSheet by remember { mutableStateOf(false) }
-    var showAddSheet by remember { mutableStateOf(false) }
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     var previousTasksSize by remember { mutableIntStateOf(tasks.size) }
     LaunchedEffect(tasks.size) {
@@ -139,29 +139,8 @@ fun TasksScreen(
         previousTasksSize = tasks.size
     }
 
-    if (showEditSheet && editingTask != null) {
-        EditTaskSheet(
-            task = editingTask!!,
-            onDismiss = {
-                showEditSheet = false
-                editingTask = null
-            },
-            onSave = { title, description, dueDate, dueTimeMinutes, tag ->
-                taskViewModel.updateTask(editingTask!!, title, description, dueDate, dueTimeMinutes, tag)
-                showEditSheet = false
-                editingTask = null
-            }
-        )
-    }
-
-    if (showAddSheet) {
-        AddTaskSheet(
-            onDismiss = { showAddSheet = false },
-            onSave = { title, description, dueDate, dueTimeMinutes, tag ->
-                taskViewModel.addTask(title, description, dueDate, dueTimeMinutes, tag)
-                showAddSheet = false
-            }
-        )
+    if (taskViewModel.isSheetOpen) {
+        TaskFormSheet(taskViewModel = taskViewModel)
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -189,7 +168,7 @@ fun TasksScreen(
                 contentPadding = PaddingValues(
                     start = 16.dp,
                     end = 16.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 96.dp,
+                    bottom = innerPadding.calculateBottomPadding() + if (isLandscape) 72.dp else 96.dp,
                     top = 8.dp
                 ),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -199,30 +178,30 @@ fun TasksScreen(
                         Box(
                             modifier = Modifier
                                 .fillParentMaxSize()
-                                .padding(bottom = 96.dp)
+                                .padding(bottom = if (isLandscape) 48.dp else 96.dp)
                                 .animateItem(),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center,
-                                modifier = Modifier.padding(32.dp)
+                                modifier = Modifier.padding(if (isLandscape) 16.dp else 32.dp)
                             ) {
                                 Surface(
-                                    shape = RoundedCornerShape(24.dp),
+                                    shape = RoundedCornerShape(if (isLandscape) 18.dp else 24.dp),
                                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    modifier = Modifier.size(72.dp)
+                                    modifier = Modifier.size(if (isLandscape) 56.dp else 72.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
                                             if (selectedTab == TaskTab.PENDING) Icons.Default.TaskAlt else Icons.Default.CheckCircle,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(36.dp)
+                                            modifier = Modifier.size(if (isLandscape) 28.dp else 36.dp)
                                         )
                                     }
                                 }
-                                Spacer(modifier = Modifier.height(16.dp))
+                                Spacer(modifier = Modifier.height(if (isLandscape) 8.dp else 16.dp))
                                 Text(
                                     text = stringResource(
                                         if (selectedTab == TaskTab.PENDING) R.string.tasks_empty_pending
@@ -256,10 +235,7 @@ fun TasksScreen(
                                 isLast = isLast,
                                 onToggle = { taskViewModel.toggleTaskCompletion(task) },
                                 onDelete = { taskViewModel.trashTask(task) },
-                                onLongClick = {
-                                    editingTask = task
-                                    showEditSheet = true
-                                }
+                                onLongClick = { taskViewModel.openEditSheet(task) }
                             )
                         }
                     }
@@ -271,270 +247,222 @@ fun TasksScreen(
             selectedTab = selectedTab,
             onTabSelected = { selectedTab = it },
             onTrashClick = onTrashClick,
-            onAddClick = { showAddSheet = true },
+            onAddClick = { taskViewModel.openAddSheet() },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(bottom = 24.dp)
+                .padding(bottom = if (isLandscape) 12.dp else 24.dp)
         )
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AddTaskSheet(
-    onDismiss: () -> Unit,
-    onSave: (title: String, description: String, dueDate: Long?, dueTimeMinutes: Int?, tag: String?) -> Unit
-) {
-    TaskFormSheet(
-        headerText = "New Task",
-        initialTitle = "",
-        initialDescription = "",
-        initialDueDate = null,
-        initialDueTimeMinutes = null,
-        initialTag = null,
-        confirmLabel = "Add Task",
-        onDismiss = onDismiss,
-        onConfirm = onSave
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun EditTaskSheet(
-    task: Task,
-    onDismiss: () -> Unit,
-    onSave: (title: String, description: String, dueDate: Long?, dueTimeMinutes: Int?, tag: String?) -> Unit
-) {
-    TaskFormSheet(
-        headerText = "Edit Task",
-        initialTitle = task.title,
-        initialDescription = task.description,
-        initialDueDate = task.dueDate,
-        initialDueTimeMinutes = task.dueTimeMinutes,
-        initialTag = task.tag,
-        confirmLabel = "Save Changes",
-        onDismiss = onDismiss,
-        onConfirm = onSave
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TaskFormSheet(
-    headerText: String,
-    initialTitle: String,
-    initialDescription: String,
-    initialDueDate: Long?,
-    initialDueTimeMinutes: Int?,
-    initialTag: String?,
-    confirmLabel: String,
-    onDismiss: () -> Unit,
-    onConfirm: (title: String, description: String, dueDate: Long?, dueTimeMinutes: Int?, tag: String?) -> Unit
+    taskViewModel: TaskViewModel
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var title by remember { mutableStateOf(initialTitle) }
-    var description by remember { mutableStateOf(initialDescription) }
-    var dueDate by remember { mutableStateOf(initialDueDate) }
-    var dueTimeMinutes by remember { mutableStateOf(initialDueTimeMinutes) }
-    var tag by remember { mutableStateOf(initialTag) }
+    val isEditing = taskViewModel.editingTask != null
+    val headerText = if (isEditing) "Edit Task" else "New Task"
+    val confirmLabel = if (isEditing) "Save Changes" else "Add Task"
 
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
-    var showCustomTagField by remember { mutableStateOf(false) }
-    var customTagText by remember { mutableStateOf("") }
-
-    if (showDatePicker) {
+    if (taskViewModel.formShowDatePicker) {
         DueDatePickerDialog(
-            initialMillis = dueDate,
-            onDismiss = { showDatePicker = false },
+            initialMillis = taskViewModel.formDueDate,
+            onDismiss = { taskViewModel.formShowDatePicker = false },
             onConfirm = {
-                dueDate = it
-                showDatePicker = false
+                taskViewModel.formDueDate = it
+                taskViewModel.formShowDatePicker = false
             }
         )
     }
 
-    if (showTimePicker) {
+    if (taskViewModel.formShowTimePicker) {
         DueTimePickerDialog(
-            initialMinutes = dueTimeMinutes,
-            onDismiss = { showTimePicker = false },
+            initialMinutes = taskViewModel.formDueTimeMinutes,
+            onDismiss = { taskViewModel.formShowTimePicker = false },
             onConfirm = {
-                dueTimeMinutes = it
-                showTimePicker = false
+                taskViewModel.formDueTimeMinutes = it
+                taskViewModel.formShowTimePicker = false
             }
         )
     }
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { taskViewModel.closeSheet() },
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         dragHandle = { BottomSheetDefaults.DragHandle() },
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .imePadding()
-                .padding(start = 24.dp, end = 24.dp, bottom = 48.dp, top = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = headerText,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Medium
-            )
-
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "TASK NAME",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("What needs to be done?") },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            Column(
+                modifier = Modifier
+                    .widthIn(max = 560.dp)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .imePadding()
+                    .padding(start = 24.dp, end = 24.dp, bottom = 48.dp, top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                OutlinedButton(
-                    onClick = { showDatePicker = true },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(50),
-                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                        contentColor = if (dueDate != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    ),
-                    border = BorderStroke(
-                        1.dp,
-                        if (dueDate != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
-                    )
-                ) {
-                    Icon(
-                        Icons.Default.CalendarToday,
-                        contentDescription = null,
-                        modifier = Modifier.padding(end = 8.dp)
-                    )
-                    Text(dueDate?.let { formatDueDate(it) } ?: "Set Due Date")
-                }
-                OutlinedButton(
-                    onClick = { showTimePicker = true },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(50),
-                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                        contentColor = if (dueTimeMinutes != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    ),
-                    border = BorderStroke(
-                        1.dp,
-                        if (dueTimeMinutes != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
-                    )
-                ) {
-                    Icon(
-                        Icons.Default.AccessTime,
-                        contentDescription = null,
-                        modifier = Modifier.padding(end = 8.dp)
-                    )
-                    Text(dueTimeMinutes?.let { formatDueTime(it) } ?: "Set Time")
-                }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "DETAILED DESCRIPTION",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = headerText,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Medium
                 )
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Add notes or specific steps here...") },
-                    shape = RoundedCornerShape(16.dp),
-                    minLines = 3
-                )
-            }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "TAGS",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "TASK NAME",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = taskViewModel.formTitle,
+                        onValueChange = { taskViewModel.formTitle = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("What needs to be done?") },
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true
+                    )
+                }
+
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    TagPresets.forEach { preset ->
+                    OutlinedButton(
+                        onClick = { taskViewModel.formShowDatePicker = true },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(50),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = if (taskViewModel.formDueDate != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        ),
+                        border = BorderStroke(
+                            1.dp,
+                            if (taskViewModel.formDueDate != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.CalendarToday,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Text(taskViewModel.formDueDate?.let { formatDueDate(it) } ?: "Set Due Date")
+                    }
+                    OutlinedButton(
+                        onClick = { taskViewModel.formShowTimePicker = true },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(50),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = if (taskViewModel.formDueTimeMinutes != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        ),
+                        border = BorderStroke(
+                            1.dp,
+                            if (taskViewModel.formDueTimeMinutes != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.AccessTime,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        Text(taskViewModel.formDueTimeMinutes?.let { formatDueTime(it) } ?: "Set Time")
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "DETAILED DESCRIPTION",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = taskViewModel.formDescription,
+                        onValueChange = { taskViewModel.formDescription = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Add notes or specific steps here...") },
+                        shape = RoundedCornerShape(16.dp),
+                        minLines = 3
+                    )
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "TAGS",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                    ) {
+                        TagPresets.forEach { preset ->
+                            TagChip(
+                                label = preset,
+                                icon = tagIcon(preset),
+                                selected = taskViewModel.formTag == preset,
+                                onClick = {
+                                    taskViewModel.formTag = if (taskViewModel.formTag == preset) null else preset
+                                    taskViewModel.formShowCustomTagField = false
+                                }
+                            )
+                        }
+                        val currentTag = taskViewModel.formTag
+                        val isCustomTag = currentTag != null && currentTag !in TagPresets
                         TagChip(
-                            label = preset,
-                            icon = tagIcon(preset),
-                            selected = tag == preset,
+                            label = if (isCustomTag) currentTag else "+ Add Tag",
+                            icon = Icons.AutoMirrored.Filled.Label,
+                            selected = isCustomTag,
                             onClick = {
-                                tag = if (tag == preset) null else preset
-                                showCustomTagField = false
+                                taskViewModel.formCustomTagText = currentTag?.takeIf { it !in TagPresets } ?: ""
+                                taskViewModel.formShowCustomTagField = true
                             }
                         )
                     }
-                    val currentTag = tag
-                    val isCustomTag = currentTag != null && currentTag !in TagPresets
-                    TagChip(
-                        label = if (isCustomTag) currentTag else "+ Add Tag",
-                        icon = Icons.AutoMirrored.Filled.Label,
-                        selected = isCustomTag,
-                        onClick = {
-                            customTagText = currentTag?.takeIf { it !in TagPresets } ?: ""
-                            showCustomTagField = true
-                        }
-                    )
-                }
-                if (showCustomTagField) {
-                    OutlinedTextField(
-                        value = customTagText,
-                        onValueChange = { customTagText = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Custom tag") },
-                        shape = RoundedCornerShape(16.dp),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(
-                            onDone = {
-                                if (customTagText.isNotBlank()) {
-                                    tag = customTagText
+                    if (taskViewModel.formShowCustomTagField) {
+                        OutlinedTextField(
+                            value = taskViewModel.formCustomTagText,
+                            onValueChange = { taskViewModel.formCustomTagText = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("Custom tag") },
+                            shape = RoundedCornerShape(16.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    if (taskViewModel.formCustomTagText.isNotBlank()) {
+                                        taskViewModel.formTag = taskViewModel.formCustomTagText
+                                    }
+                                    taskViewModel.formShowCustomTagField = false
                                 }
-                                showCustomTagField = false
-                            }
+                            )
                         )
+                    }
+                }
+
+                Button(
+                    onClick = { taskViewModel.saveCurrentForm() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text(
+                        confirmLabel,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium
                     )
                 }
-            }
-
-            Button(
-                onClick = { onConfirm(title, description, dueDate, dueTimeMinutes, tag) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                Text(
-                    confirmLabel,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium
-                )
             }
         }
     }
