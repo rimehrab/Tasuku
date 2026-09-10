@@ -16,8 +16,14 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE isTrashed = 1 ORDER BY id DESC")
     fun getTrashedTasks(): Flow<List<Task>>
 
+    @Query("SELECT * FROM tasks WHERE id = :id LIMIT 1")
+    suspend fun getTaskById(id: Int): Task?
+
+    @Query("UPDATE tasks SET isCompleted = :isCompleted WHERE id = :id")
+    suspend fun setTaskCompleted(id: Int, isCompleted: Boolean)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertTask(task: Task)
+    suspend fun insertTask(task: Task): Long
 
     @Update
     suspend fun updateTask(task: Task)

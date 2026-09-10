@@ -31,4 +31,7 @@
     <string name="empty_trash_confirm_button">Delete All</string>
     <string name="restore_task">Restore</string>
     <string name="delete_forever">Delete forever</string>
+    <string name="notification_channel_name">Task Reminders</string>
+    <string name="notification_channel_description">Notifications for scheduled task reminders</string>
+    <string name="mark_as_completed">Mark as Completed</string>
 </resources>

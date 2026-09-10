@@ -1,11 +1,16 @@
 package dev.rimehrab.tasuku
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -20,8 +25,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
+import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -37,6 +46,7 @@ import dev.rimehrab.tasuku.navigation.Appearance
 import dev.rimehrab.tasuku.navigation.Settings
 import dev.rimehrab.tasuku.navigation.Tasks
 import dev.rimehrab.tasuku.navigation.Trash
+import dev.rimehrab.tasuku.reminder.TaskAlarmScheduler
 import dev.rimehrab.tasuku.screens.AboutScreen
 import dev.rimehrab.tasuku.screens.AppearanceScreen
 import dev.rimehrab.tasuku.screens.SettingsScreen
@@ -52,6 +62,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val context = LocalContext.current
             val settingsViewModel: SettingsViewModel = viewModel()
 
             val darkTheme = when (settingsViewModel.theme) {
@@ -70,16 +81,38 @@ class MainActivity : ComponentActivity() {
                 onDispose {}
             }
 
+            val permissionLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.RequestPermission(),
+                onResult = { }
+            )
+
+            LaunchedEffect(Unit) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    if (ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.POST_NOTIFICATIONS
+                        ) != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                }
+            }
+
             TasukuTheme(
                 darkTheme = darkTheme,
                 dynamicColor = settingsViewModel.dynamicColor
             ) {
                 val database = TaskDatabase.getDatabase(applicationContext)
+                val alarmScheduler = remember { TaskAlarmScheduler(applicationContext) }
                 val taskViewModel: TaskViewModel = viewModel(
                     factory = object : ViewModelProvider.Factory {
                         override fun <T : ViewModel> create(modelClass: Class<T>): T {
                             @Suppress("UNCHECKED_CAST")
-                            return TaskViewModel(database.taskDao()) as T
+                            return TaskViewModel(
+                                taskDao = database.taskDao(),
+                                notificationDao = database.scheduledNotificationDao(),
+                                alarmScheduler = alarmScheduler
+                            ) as T
                         }
                     }
                 )
